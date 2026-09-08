@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Slovenia Road Trip · 29 Aug – 21 Sep 2026</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  :root {
+    --alpine: #1f6f5c; --soca: #2a7fa8; --coast: #c97a2b; --travel: #6b6f76;
+    --travel-light: #eef0f2; --anchor: #b3431f;
+    --ink: #23272b; --muted: #6b7178; --line: #e4e7ea; --bg: #f7f8f9; --card: #ffffff;
+    --t-hike:#1f6f5c; --t-gorge:#2a9d8f; --t-swim:#2a7fa8; --t-cave:#7b5ea7;
+    --t-bike:#c97a2b; --t-town:#9c6b3f; --t-work:#aeb4ba; --t-drive:#8a9097; --t-call:#c0504d;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink); background:var(--bg); line-height:1.55; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1140px; margin:0 auto; padding:0 20px 80px; }
+
+  header.hero { background:linear-gradient(135deg,var(--alpine) 0%,var(--soca) 55%,var(--coast) 100%);
+    color:#fff; padding:44px 20px 38px; text-align:center; }
+  header.hero h1 { margin:0 0 6px; font-size:2.05rem; letter-spacing:-0.02em; }
+  header.hero .dates { font-size:1.05rem; opacity:.95; font-weight:500; }
+  header.hero .route { margin-top:16px; display:inline-flex; flex-wrap:wrap; gap:8px; justify-content:center; }
+  header.hero .route span { background:rgba(255,255,255,.18); padding:5px 13px; border-radius:999px; font-size:.9rem; }
+  header.hero .who { margin-top:14px; font-size:.92rem; opacity:.9; }
+  header.hero .route-link { margin-top:12px; font-size:.9rem; }
+  header.hero .route-link a { color:#fff; text-decoration:underline; text-underline-offset:3px; opacity:.95; }
+  header.hero .route-link a:hover { opacity:1; }
+  .style-chips { display:flex; flex-wrap:wrap; gap:7px; justify-content:center; margin:18px auto 0; max-width:760px; }
+  .style-chips span { background:rgba(255,255,255,.92); color:var(--ink); padding:4px 11px; border-radius:999px; font-size:.82rem; font-weight:500; }
+
+  h2.section { font-size:1.35rem; margin:42px 0 4px; letter-spacing:-0.01em; display:flex; align-items:center; gap:10px; }
+  .section-sub { color:var(--muted); margin:0 0 16px; font-size:.95rem; }
+
+  /* Map */
+  #map { height:480px; border-radius:12px; border:1px solid var(--line); }
+  .map-legend { display:flex; flex-wrap:wrap; gap:14px; margin:10px 2px 0; font-size:.82rem; color:var(--muted); }
+  .map-legend span { display:inline-flex; align-items:center; gap:6px; }
+  .dot { width:12px; height:12px; border-radius:50%; display:inline-block; border:1px solid rgba(0,0,0,.15); }
+
+  /* Week calendar */
+  .week { margin-top:30px; }
+  .week-head { display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; padding:10px 16px; border-radius:10px 10px 0 0; color:#fff; }
+  .week-head .num { font-weight:700; font-size:.78rem; letter-spacing:.08em; text-transform:uppercase; opacity:.9; }
+  .week-head .title { font-weight:600; font-size:1.1rem; }
+  .week-head .range { margin-left:auto; font-size:.88rem; opacity:.92; }
+  .w-alpine .week-head { background:var(--alpine); } .w-soca .week-head { background:var(--soca); }
+  .w-coast .week-head { background:var(--coast); } .w-travel .week-head { background:var(--travel); }
+  .week-body { background:var(--card); border:1px solid var(--line); border-top:none; border-radius:0 0 10px 10px; padding:0; overflow-x:auto; }
+
+  .cal { display:grid; grid-template-columns:46px repeat(7,minmax(118px,1fr)); min-width:880px; }
+  .cal .corner { border-bottom:1px solid var(--line); }
+  .cal .dayhead { border-bottom:1px solid var(--line); border-left:1px solid var(--line); padding:7px 8px; text-align:center; }
+  .cal .dayhead .dow { font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
+  .cal .dayhead .dt { font-size:.9rem; font-weight:600; }
+  .cal .dayhead.is-anchor .dt { color:var(--anchor); }
+  .cal .timegutter { position:relative; }
+  .cal .timegutter .hr { height:40px; font-size:.66rem; color:var(--muted); text-align:right; padding-right:5px; transform:translateY(-6px); }
+  .cal .col { position:relative; border-left:1px solid var(--line); }
+  .cal .col .hrline { height:40px; border-bottom:1px solid #f1f3f4; }
+  .ev { position:absolute; left:3px; right:3px; border-radius:6px; padding:3px 6px; font-size:.74rem; line-height:1.2;
+    overflow:hidden; color:#fff; box-shadow:0 1px 2px rgba(0,0,0,.12); }
+  .ev .t { font-weight:600; display:block; }
+  .ev .s { opacity:.92; font-size:.68rem; }
+  .ev.type-work { background:var(--t-work); color:#3a3f44; }
+  .ev.type-hike { background:var(--t-hike); } .ev.type-gorge { background:var(--t-gorge); }
+  .ev.type-swim { background:var(--t-swim); } .ev.type-cave { background:var(--t-cave); }
+  .ev.type-bike { background:var(--t-bike); } .ev.type-town { background:var(--t-town); }
+  .ev.type-drive { background:repeating-linear-gradient(45deg,#dfe3e6,#dfe3e6 6px,#eef1f3 6px,#eef1f3 12px); color:#4a4f54; }
+  .ev.type-free { background:#f4f0e8; color:#7a6f57; }
+  .ev.type-call { background:var(--t-call); color:#fff; font-weight:600; }
+  .ev.anchor { box-shadow:0 0 0 2px var(--anchor), 0 1px 3px rgba(0,0,0,.2); }
+  .ev .star { font-size:.7rem; }
+
+  .travel-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; padding:16px; }
+  .tcard { border:1px solid var(--line); border-radius:8px; padding:12px 14px; background:#fcfcfd; }
+  .tcard .badge { display:inline-block; font-size:.66rem; background:var(--travel); color:#fff; padding:1px 7px; border-radius:4px; font-weight:700; }
+  .tcard h4 { margin:6px 0 4px; font-size:.95rem; } .tcard p { margin:0; font-size:.86rem; color:var(--muted); }
+
+  /* Catalogue */
+  .cat-region { margin-top:22px; }
+  .cat-region h3 { font-size:1.05rem; margin:0 0 4px; display:flex; align-items:center; gap:8px; }
+  .cat-region .cr-sub { color:var(--muted); font-size:.85rem; margin:0 0 10px; }
+  .cat-list { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .cat-item { border:1px solid var(--line); border-radius:8px; padding:9px 11px; background:var(--card); display:flex; gap:10px; align-items:flex-start; }
+  .cat-item .rank { font-weight:700; color:var(--muted); font-size:.85rem; min-width:18px; }
+  .cat-item .ci-main { flex:1; }
+  .cat-item .ci-name { font-weight:600; font-size:.9rem; }
+  .cat-item .ci-why { font-size:.8rem; color:var(--muted); margin-top:1px; }
+  .cat-item .ci-meta { margin-top:4px; display:flex; flex-wrap:wrap; gap:5px; }
+  .pill { font-size:.66rem; padding:1px 7px; border-radius:999px; font-weight:600; }
+  .pill.t-hike{background:#e6f2ee;color:var(--t-hike);} .pill.t-gorge{background:#e3f4f1;color:#1d7a6d;}
+  .pill.t-swim{background:#e4f0f6;color:var(--t-swim);} .pill.t-cave{background:#efeaf6;color:#5f4a8a;}
+  .pill.t-bike{background:#fbeede;color:var(--coast);} .pill.t-town{background:#f3ece4;color:var(--t-town);}
+  .pill.diff{background:#f0f2f3;color:#555;} .pill.dur{background:#f0f2f3;color:#555;}
+  .pill.sched{background:var(--anchor);color:#fff;} .pill.flex{background:#fff4e0;color:#9a6b16;}
+  .cat-item .ci-meta a.maplink { font-size:.66rem; padding:1px 8px; border-radius:999px; background:#eef4fb; color:#2a6aa0; text-decoration:none; font-weight:700; }
+  .cat-item .ci-meta a.maplink:hover { background:#d9e8f6; }
+
+  details.fold { background:var(--card); border:1px solid var(--line); border-radius:10px; margin-top:12px; overflow:hidden; }
+  details.fold > summary { cursor:pointer; padding:14px 16px; font-weight:600; font-size:1rem; list-style:none; display:flex; align-items:center; gap:9px; }
+  details.fold > summary::-webkit-details-marker { display:none; }
+  details.fold > summary::before { content:"›"; font-size:1.3rem; transition:transform .15s; color:var(--muted); }
+  details.fold[open] > summary::before { transform:rotate(90deg); }
+  details.fold .fold-body { padding:0 16px 16px; border-top:1px solid var(--line); }
+  details.fold .fold-body h4 { margin:16px 0 6px; font-size:.95rem; }
+  details.fold .fold-body p, details.fold .fold-body li { font-size:.9rem; }
+  details.fold .fold-body ul { margin:6px 0; padding-left:20px; }
+
+  .checklist { list-style:none; padding:0; margin:8px 0; }
+  .checklist li { display:flex; align-items:flex-start; gap:10px; padding:6px 0; font-size:.9rem; border-bottom:1px solid #f0f2f3; }
+  .checklist input[type=checkbox] { margin-top:3px; width:16px; height:16px; accent-color:var(--alpine); cursor:pointer; flex-shrink:0; }
+  .checklist input:checked + label { color:var(--muted); text-decoration:line-through; }
+
+  .ev{cursor:pointer;}
+  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:1000;padding:20px;}
+  .modal-backdrop.open{display:flex;}
+  .modal{background:var(--card);border-radius:12px;max-width:460px;width:100%;padding:20px 22px;box-shadow:0 12px 44px rgba(0,0,0,.3);position:relative;}
+  .modal h3{margin:0;font-size:1.15rem;padding-right:24px;}
+  .modal .close{position:absolute;top:8px;right:12px;cursor:pointer;font-size:1.5rem;color:var(--muted);background:none;border:none;line-height:1;}
+  .modal .m-time{font-size:.85rem;color:var(--muted);margin-top:6px;}
+  .modal .m-meta{margin:12px 0;display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+  .modal .m-why{font-size:.95rem;color:var(--ink);margin:10px 0 16px;}
+  .modal a.m-route{display:inline-block;font-size:.85rem;padding:8px 14px;border-radius:8px;background:var(--soca);color:#fff;text-decoration:none;font-weight:600;}
+  .modal .m-photo{width:100%;height:180px;object-fit:cover;border-radius:8px;margin-bottom:12px;background:#eef0f2;display:block;}
+  footer { text-align:center; color:var(--muted); font-size:.8rem; margin-top:50px; }
+  a { color:var(--soca); }
+  @media (max-width:760px){ .cat-list{grid-template-columns:1fr;} .travel-row{grid-template-columns:1fr;} header.hero h1{font-size:1.6rem;} }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <h1>Slovenia Road Trip</h1>
+  <div class="dates">29 Aug – 20 Sep 2026</div>
+  <div class="route">
+    <span>🚗 Lučenec (SK)</span><span>🏖️ Balaton</span><span>🏔️ Kranjska Gora</span>
+    <span>⛰️ Kobarid / Soča</span><span>🏞️ Karst / Postojna</span>
+  </div>
+  <div class="route-link"><a href="https://www.google.com/maps/dir/R%C3%BAbanisko+II+422%2F42,+984+03+Lu%C4%8Denec,+Slovakia/T%C3%B6r%C3%B6k+B%C3%A1lint+u.+8,+Vonyarcvashegy,+8314+Hungary/Gozd+Martuljek,+4282,+Slovenia/Ladra,+5222,+Slovenia/Postojna,+6230,+Slovenia/@47.0159296,13.9416953,7z/data=!3m1!4b1!4m32!4m31!1m5!1m1!1s0x473ff8bde52b08d1:0xb4c7b9720b4699a3!2m2!1d19.6404223!2d48.3350424!1m5!1m1!1s0x4769028f8e25dc9b:0xd6f65caf96628f49!2m2!1d17.3143173!2d46.7672816!1m5!1m1!1s0x477a7d736c8610d1:0x3d70a6a6dd262525!2m2!1d13.8453117!2d46.4854585!1m5!1m1!1s0x477a5c7507549bf3:0xf359512119213432!2m2!1d13.6059618!2d46.2375136!1m5!1m1!1s0x477b3275107415bb:0xc1921865bef4b780!2m2!1d14.2133245!2d45.7749704!3e0?entry=ttu&amp;g_ep=EgoyMDI2MDYxNi4wIKXMDSoASAFQAw%3D%3D" target="_blank" rel="noopener">🚗 Full driving route to all accommodations (Google Maps)</a></div>
+  <div class="who">You + girlfriend · by car · working weekdays with a half-day off most days</div>
+  <div class="style-chips">
+    <span>Nature</span><span>Challenging hikes</span><span>Caving</span><span>Bike days</span>
+    <span>Warm Adriatic swims (coast)</span><span>Avoiding tourist traps</span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- MAP -->
+  <h2 class="section">🗺️ The journey</h2>
+  <div id="map"></div>
+  <div class="map-legend">
+    <span>🏁 Home (start &amp; finish)</span>
+    <span><span class="dot" style="background:#e11d48"></span> ★ In the itinerary</span>
+    <span><span class="dot" style="background:#7e57c2;opacity:.6"></span> Balaton</span>
+    <span><span class="dot" style="background:var(--alpine);opacity:.6"></span> Julian Alps (Kranjska Gora + Bohinj)</span>
+    <span><span class="dot" style="background:var(--soca);opacity:.6"></span> Soča Valley</span>
+    <span><span class="dot" style="background:var(--coast);opacity:.6"></span> Coast + Karst</span>
+    <span><span class="dot" style="background:#546e7a;opacity:.6"></span> City (optional)</span>
+    <span>🏠 Sleep base</span>
+    <span style="opacity:.55">🏠 Alternative base</span>
+  </div>
+
+  <!-- ITINERARY CALENDAR -->
+  <h2 class="section">🗓️ Day-by-day</h2>
+  <div class="map-legend" style="margin-bottom:8px;">
+    <span><span class="dot" style="background:var(--t-work)"></span> Work</span>
+    <span><span class="dot" style="background:var(--t-call)"></span> Work call (fixed)</span>
+    <span><span class="dot" style="background:var(--t-hike)"></span> Hike</span>
+    <span><span class="dot" style="background:var(--t-gorge)"></span> Gorge/Waterfall</span>
+    <span><span class="dot" style="background:var(--t-swim)"></span> Swim</span>
+    <span><span class="dot" style="background:var(--t-cave)"></span> Cave</span>
+    <span><span class="dot" style="background:var(--t-bike)"></span> Bike</span>
+    <span><span class="dot" style="background:var(--t-town)"></span> Town/Culture</span>
+    <span><span class="dot" style="background:#dfe3e6"></span> Drive</span>
+  </div>
+
+  <div id="weeks"></div>
+
+  <!-- CATALOGUE -->
+  <h2 class="section">⭐ More options — not in the calendar</h2>
+  <div id="catalogue"></div>
+
+  <!-- CHECKLIST -->
+  <h2 class="section">✅ TODO Checklist</h2>
+  <p class="section-sub">Ticks are saved in this browser.</p>
+  <ul class="checklist" id="checklist">
+    <li><input type="checkbox" id="c1"><label for="c1">Apartments: Kobarid/Ladra + Postojna with confirmed wifi (Gozd Martuljek already booked)</label></li>
+    <li><input type="checkbox" id="c2"><label for="c2">Balaton overnight (north shore)</label></li>
+    <li><input type="checkbox" id="c3"><label for="c3">Vignettes &amp; tolls: Slovenia 1-month e-vignette (register plate exactly), Hungary 10-day (outbound) + 1-day (return) e-matrica, Mangart road ~€10 paid on site</label></li>
+    <li><input type="checkbox" id="c4"><label for="c4">Vintgar Gorge timed ticket (if doing the Bled-side drive-day)</label></li>
+    <li><input type="checkbox" id="c5"><label for="c5">Škocjan Caves tour slot (move day, Sun 13)</label></li>
+    <li><input type="checkbox" id="c6"><label for="c6">Postojna "Trek through Three Caves" slot (Sun 20, 13:30 · Sat/Sun only · ~€92.50pp · book ahead); Križna jama 4h epic only if swapping onto Fri (reserve far ahead)</label></li>
+    <li><input type="checkbox" id="c7"><label for="c7">Soča bike day — MTB/e-bike + ridge uplift (Kobarid/Bovec), Fri 11 Sep</label></li>
+    <li><input type="checkbox" id="c9"><label for="c9">Bovec Zipline (Učja) slot — min 2 people, Wed 9 Sep</label></li>
+  </ul>
+
+  <div class="modal-backdrop" id="modal"><div class="modal"><button class="close" id="modalClose" aria-label="Close">×</button><div id="modalBody"></div></div></div>
+
+  <footer>Living itinerary — tell me changes and I'll update it · coordinates verified via web (a few medium-confidence)</footer>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+/* ---------- DATA ---------- */
+const BASES = [
+  {name:"Home — Rúbanisko II, Lučenec", lat:48.334958, lng:19.644418, kind:"home"},
+  {name:"8314 Vonyarcvashegy, Török Bálint 8", lat:46.767429, lng:17.314587, kind:"sleep"},
+  {name:"Gozd Martuljek (Kranjska Gora)", lat:46.486417, lng:13.826161, kind:"sleep"},
+  {name:"Ladra (near Kobarid)", lat:46.236961, lng:13.605812, kind:"sleep"},
+  {name:"Postojna", lat:45.7757, lng:14.2144, kind:"sleep"},
+  {name:"Bovec (alt base)", lat:46.3378, lng:13.5522, kind:"alt"},
+  {name:"Vipava (alt base)", lat:45.8464, lng:13.9614, kind:"alt"},
+];
+// out from home → Balaton → Gozd Martuljek → Vršič → Kobarid → Škocjan → Postojna, then NON-STOP back home
+const ROUTE = [[48.334958,19.644418],[46.767429,17.314587],[46.486417,13.826161],[46.4356,13.7444],[46.236961,13.605812],[45.6636,13.9897],[45.7757,14.2144],[48.334958,19.644418]];
+
+// region: balaton | alpine | soca | coast | city
+const POI = [
+  // Balaton (overnight stopover — western end)
+  ["Festetics Palace (Keszthely)",46.77260,17.23890,"balaton"],
+  ["Keszthely lakefront",46.75600,17.24700,"balaton"],
+  ["Szigliget Castle",46.80030,17.43500,"balaton"],
+  ["Badacsony wine hill",46.80300,17.50100,"balaton"],
+  ["Hévíz thermal lake",46.78750,17.18890,"balaton"],
+  ["Vonyarcvashegy Lidó Strand",46.7360,17.3120,"balaton"],
+  ["Öregház Vendégudvar (Vonyarcvashegy)",46.7380,17.3100,"balaton"],
+  // Kranjska Gora doorstep (Julian Alps NW)
+  ["Martuljek Waterfalls",46.482084,13.837755,"alpine"],
+  ["Ciprnik / Vitranc",46.485,13.779,"alpine"],
+  ["Tamar valley → Nadiža waterfall",46.446045,13.713407,"alpine"],
+  ["Zelenci nature reserve",46.494295,13.73438,"alpine"],
+  ["Lake Jasna",46.475654,13.783427,"alpine"],
+  ["Mala Mojstrovka (2332 m)",46.43725,13.73111,"alpine"],
+  // Bohinj-side drive-days (~50 min)
+  ["Valley of the Seven Lakes (Savica trailhead)",46.290019,13.802465,"alpine"],
+  ["Vogel cable car",46.27569,13.83494,"alpine"], ["Rodica",46.22806,13.86361,"alpine"],
+  ["Mostnica Gorge",46.29842,13.88540,"alpine"], ["Viševnik (Pokljuka)",46.3540,13.9230,"alpine"],
+  ["Vintgar Gorge",46.390977,14.083873,"alpine"], ["Lake Bled",46.36444,14.09472,"alpine"],
+  ["Triglav (2864 m)",46.37833,13.83667,"alpine"],
+  ["Peričnik waterfall",46.4350,13.8600,"alpine"],
+  ["Russian Chapel (Vršič)",46.4503,13.7517,"alpine"],
+  ["Prisojnik (Prisank)",46.4197,13.7361,"alpine"],
+  // Soča
+  ["Krn (2244 m)",46.2664,13.6589,"soca"], ["Krn Lake",46.2722,13.6606,"soca"],
+  ["Mt. Stol (Kobariški Stol, 1673 m)",46.278364,13.453905,"soca"], ["Matajur",46.2122,13.5292,"soca"],
+  ["Svinjak",46.3505,13.6108,"soca"], ["Mangart Saddle",46.4410,13.6640,"soca"],
+  ["Kanin cable car",46.3329,13.5388,"soca"], ["Slemenova špica",46.4329,13.7431,"soca"],
+  ["Kolovrat ridge (WWI)",46.1859,13.6605,"soca"], ["Boka waterfall",46.3222,13.4816,"soca"],
+  ["Slap Virje",46.3349,13.5142,"soca"], ["Kozjak waterfall",46.2594,13.5902,"soca"],
+  ["Tolmin Gorges",46.1980,13.7402,"soca"], ["Great Soča Gorge",46.3416,13.6843,"soca"],
+  ["Soča source",46.4083,13.7278,"soca"], ["Vršič Pass",46.4356,13.7444,"soca"],
+  ["Bovec Zipline (Učja)",46.3530,13.5060,"soca"], ["Soča rafting (Bovec)",46.3378,13.5522,"soca"],
+  ["Sušec canyon",46.3170,13.4790,"soca"],
+  ["Kobarid WWI Museum",46.2459,13.5786,"soca"], ["Goriška Brda (Šmartno)",45.9962,13.5230,"soca"],
+  // Coast + Karst
+  ["Mt. Snežnik (1796 m)",45.5883,14.4474,"coast"], ["Snežnik Castle",45.6825,14.4692,"coast"],
+  ["Slavnik",45.5339,13.9759,"coast"], ["Nanos plateau",45.7707,14.0538,"coast"],
+  ["Beka waterfalls (Glinščica)",45.6050,13.8760,"coast"], ["Strunjan cliffs / Moon Bay",45.5347,13.6075,"coast"],
+  ["Simonov zaliv beach (Izola)",45.5470,13.6478,"coast"], ["Fiesa coves",45.5260,13.5790,"coast"],
+  ["Križna jama",45.7454,14.4674,"coast"],
+  ["Škocjan Caves",45.6636,13.9897,"coast"], ["Predjama Castle",45.8156,14.1272,"coast"],
+  ["Postojna Cave",45.7831,14.2039,"coast"], ["Osp climbing crag",45.5726,13.8565,"coast"],
+  ["Cerkniško jezero",45.7300,14.3700,"coast"], ["Rakov Škocjan",45.7867,14.2917,"coast"],
+  ["Sečovlje salt pans",45.4864,13.5987,"coast"], ["Hrastovlje church",45.5104,13.9012,"coast"],
+  ["Piran town walls",45.5273,13.5685,"coast"], ["Grožnjan (HR)",45.3776,13.7300,"coast"],
+  ["Motovun (HR)",45.3367,13.8275,"coast"], ["Čaven / Mala gora (Vipava)",45.9224,13.8505,"coast"],
+  ["Lipica Stud Farm",45.6540,13.8710,"coast"], ["Koper old town",45.5481,13.7302,"coast"],
+  ["Parenzana trail (Portorož)",45.5135,13.5908,"coast"],
+  // Cities (optional day / stopover)
+  ["Ljubljana",46.0500,14.5067,"city"], ["Maribor",46.5576,15.6455,"city"],
+];
+const REGION_COLOR = {balaton:"#7e57c2", alpine:"#1f6f5c", soca:"#2a7fa8", coast:"#c97a2b", city:"#546e7a"};
+// attractions actually slotted into the calendar — get a distinct "picked" colour on the map
+const PICKED_COLOR = "#e11d48";
+const SCHEDULED = new Set([
+  "Festetics Palace (Keszthely)","Keszthely lakefront","Szigliget Castle",
+  "Martuljek Waterfalls","Mala Mojstrovka (2332 m)","Ciprnik / Vitranc","Vogel cable car","Mostnica Gorge",
+  "Zelenci nature reserve","Lake Jasna","Valley of the Seven Lakes (Savica trailhead)","Slemenova špica","Soča source",
+  "Kozjak waterfall","Mangart Saddle","Great Soča Gorge","Kolovrat ridge (WWI)","Krn (2244 m)","Škocjan Caves",
+  "Nanos plateau","Piran town walls","Postojna Cave","Predjama Castle","Cerkniško jezero","Rakov Škocjan","Snežnik Castle","Mt. Snežnik (1796 m)",
+  "Peričnik waterfall","Russian Chapel (Vršič)","Bovec Zipline (Učja)","Kobarid WWI Museum",
+  "Vonyarcvashegy Lidó Strand","Öregház Vendégudvar (Vonyarcvashegy)",
+]);
+
+// Calendar: days Mon..Sun. ev: [startHHMM, endHHMM, title, type, sub, anchor?]
+const WEEKS = [
+  { cls:"w-travel", num:"Week 0", title:"Travel — Balaton", range:"Sat 29 – Sun 30 Aug",
+    dow:["Sat","Sun"], dates:["29 Aug","30 Aug"], anchorDay:-1,
+    days:[
+      [["10:30","14:30","Drive: Lučenec → Vonyarcvashegy","drive","~3.5–4h",null,"https://www.google.com/maps/dir/?api=1&origin=48.334958,19.644418&destination=46.767429,17.314587&travelmode=driving"],["15:00","18:30","Vonyarcvashegy Lidó Strand","swim","check-in first · 10-20 min downhill · grassy, shallow, warm · take your time"],["19:00","20:30","Dinner: Öregház Vendégudvar","town","no fish - duck leg, goulash + Olaszrizling · 2 more picks inside"]],
+      [["12:00","16:00","Drive: Vonyarcvashegy → Gozd Martuljek","drive","~4h",null,"https://www.google.com/maps/dir/?api=1&origin=46.767429,17.314587&destination=46.486417,13.826161&travelmode=driving"],["16:00","20:00","Martuljek Waterfalls","gorge","5 min away · straight after arrival · ~4h up the gorge",null,"https://mapy.com/fnc/v1/route?mapset=outdoor&start=13.8240,46.4855&end=13.82864,46.47228&routeType=foot_hiking"]],
+    ]},
+  { cls:"w-alpine", num:"Week 1", title:"🏔️ Kranjska Gora — NW Julian Alps", range:"Mon 31 Aug – Sun 6 Sep",
+    dates:["31 Aug","1 Sep","2 Sep","3 Sep","4 Sep","5 Sep","6 Sep"],
+    anchorDay:-1,
+    days:[
+      [["09:00","15:30","Work","work","day · activities after the call"],["15:30","16:30","📞 Monday call","call","weekly · can skip once"],["17:00","18:00","Peričnik waterfall","gorge","~20 min east · walk behind the falls"],["18:30","20:30","Lake Bled","town","evening lake loop · island & castle views · touristy",null,"https://mapy.com/fnc/v1/showmap?mapset=outdoor&center=14.0936,46.3625&zoom=14&marker=true"]],
+      [["08:00","15:00","Vogel ridge + Mostnica Gorge","hike","Bohinj-side · hike up, cable car down"],["16:30","21:00","Work","work","evening"]],
+      [["09:00","17:00","Work","work","day · Srednji Vrh after the call"],["17:00","18:00","📞 Wednesday call","call","weekly · can skip once"],["18:15","20:15","Srednji Vrh","hike","from the door · up the lane to the hamlet · evening light on Špik · ~2h",null,"https://mapy.com/fnc/v1/route?mapset=outdoor&start=13.8240,46.4855&end=13.8376,46.4901&routeType=foot_hiking"]],
+      [["09:00","10:15","Zelenci springs","hike","boardwalk round the turquoise springs · ~1h"],["10:30","12:30","Planica zipline","bike","Nordic Centre · flying-hill zipline"],["13:00","15:00","📞 Thursday call","call","weekly · must attend"],["15:00","21:00","Work","work","evening"]],
+      [["08:30","15:00","Bike: Fusine lakes → Monte Forno → Trans Karavanke","bike","day off · Intersport KG · lakes loop → Fusine → Italian side up Tromeja (1508 m) → gradual descent to Podkoren · ~43 km / ~1000 m · bring ID",null,"https://mapy.com/fnc/v1/route?mapset=outdoor&start=13.7816,46.4849&end=13.7816,46.4849&routeType=bike_mountain&waypoints=13.6706,46.4797;13.6590,46.4905;13.7147,46.5225;13.7450,46.4917"]],
+      [["09:00","18:00","Rest day","free","legs off after the bike loop · did nothing, gloriously"]],
+      [["09:00","13:00","Dealing with the car","free","the day went on the car · no Vršič stops"],["13:00","15:00","Drive to Ladra (Kobarid) · settle in","drive","over the pass · check in",null,"https://www.google.com/maps/dir/?api=1&origin=46.486417,13.826161&destination=46.236961,13.605812&travelmode=driving"]],
+    ]},
+  { cls:"w-soca", num:"Week 2", title:"⛰️ Soča Valley — Kobarid", range:"Mon 7 – Sun 13 Sep",
+    dates:["7 Sep","8 Sep","9 Sep","10 Sep","11 Sep","12 Sep","13 Sep"],
+    anchorDay:5,
+    days:[
+      [["09:00","15:00","Dealing with the car","free","car trouble · no hike"],["15:00","21:00","Work","work","evening"],["15:30","16:30","📞 Monday call","call","weekly · can skip once"]],
+      [["08:00","13:00","Mangart road — halfway up","drive","top car park full · drove halfway, short walk, back"],["15:00","21:00","Work","work","evening"],["18:30","20:00","Optional: Kozjak waterfall","gorge","something small this evening · ~1.5h from Napoleon's Bridge",null,"https://www.komoot.com/tour/67977181"]],
+      [["09:00","12:00","Soča Trail / source / Great Gorge","gorge","source: ~20-min climb · then Velika korita 750 m gorge ~1h · save legs"],["15:00","21:00","Work","work","evening"],["17:00","18:00","📞 Wednesday call","call","weekly · can skip once"]],
+      [["09:00","11:30","Bovec Zipline (Učja)","bike","Europe's longest zipline · booked 09:00 · ~30 min to Bovec"],["13:00","15:00","📞 Thursday call","call","weekly · must attend"],["15:00","21:00","Work","work","evening"]],
+      [["08:30","09:00","Positive Sport — bikes + 09:00 Kolovrat uplift","bike","Mučeniška 8b · book by Thu · €10pp (min 4 — ask for 2) · if no morning run: pedal the short Kolovrat loop instead"],["09:00","15:30","BIKE — Kolovrat ridge → Kanal → Avče → Most na Soči → Kobarid","bike","van to the museum (walk the trenches) → paved ridge road south (Solarji, Kambreško) → hairpins down to Kanal → east bank via Avče (walk ~200 m rough bit) → lake path → Tolmin → Kobarid · ~55 km / ~550 m · carry food (Ježa hut closed Fri), bring ID",true,"https://mapy.com/fnc/v1/route?mapset=outdoor&start=13.6607,46.1853&end=13.5756,46.2468&routeType=bike_mountain&waypoints=13.6694,46.1635;13.6491,46.1279;13.6328,46.0856;13.6837,46.1013;13.7430,46.1521;13.7320,46.1857"]],
+      [["06:00","15:00","Krn (2244 m)","hike","~1500 m · WWI front · sea views",true]],
+      [["09:30","11:00","Drive: Kobarid → Škocjan","drive","via the Vipava valley",null,"https://www.google.com/maps/dir/?api=1&origin=46.236961,13.605812&destination=45.6636,13.9897&travelmode=driving"],["11:00","13:00","Škocjan Caves tour","cave","UNESCO underground canyon"],["13:30","14:30","Drive: Škocjan → Postojna","drive","~25 min",null,"https://www.google.com/maps/dir/?api=1&origin=45.6636,13.9897&destination=45.7757,14.2144&travelmode=driving"],["15:00","16:00","Arrive Postojna · settle in","drive"]],
+    ]},
+  { cls:"w-coast", num:"Week 3", title:"🏞️ Karst & Notranjska — Postojna", range:"Mon 14 – Sun 20 Sep",
+    dates:["14 Sep","15 Sep","16 Sep","17 Sep","18 Sep","19 Sep","20 Sep"],
+    anchorDay:5,
+    days:[
+      [["09:30","11:30","Predjama Castle","town","cliffside cave-mouth castle · ~10 min from Postojna · cave itself done as the Sun trek"],["15:00","21:00","Work","work","evening"],["15:30","16:30","📞 Monday call","call","weekly · can skip once"]],
+      [["09:00","13:00","Cerkniško jezero + Rakov Škocjan","gorge","intermittent lake + karst natural bridges"],["15:00","21:00","Work","work","evening"]],
+      [["09:00","13:00","Nanos plateau","hike","windswept Karst plateau · pinned"],["15:00","21:00","Work","work","evening"],["17:00","18:00","📞 Wednesday call","call","weekly · can skip once"]],
+      [["08:30","12:30","Snežnik Castle","town","fairy-tale moated castle + Lož valley · ~40 min"],["13:00","15:00","📞 Thursday call","call","weekly · must attend"],["15:00","21:00","Work","work","evening"]],
+      [["10:00","14:30","Piran old town + walls","town","walls €3 · St George tower · Tartini sq · harbour seafood lunch · ~50 min drive"],["14:30","16:30","Sea swim — Fiesa / Strunjan Moon Bay","swim","warm ~22–23°C · 5–10 min from Piran"],["17:30","21:00","Work","work","bank hours · shorter today"]],
+      [["07:00","16:00","Mt. Snežnik (1796 m)","hike","park at Sviščaki (~50 min) · ~5–6h round trip · bear-country forest · summit hut + Kvarner sea views",true]],
+      [["13:30","16:30","Trek through Three Caves","cave","Postojna + Pivka + Black caves · cave train + up to 3h easy trail · see olms · Sat/Sun 13:30 only · €92.50pp · book ahead"],["17:00","23:30","Evening drive Postojna → Lučenec","drive","~6.5–7h · two drivers, straight through · arrive ~midnight",null,"https://www.google.com/maps/dir/?api=1&origin=45.7757,14.2144&destination=48.334958,19.644418&travelmode=driving"]],
+    ]},
+];
+
+// Catalogue. fields: name, type, diff, dur, why, tag ("sched"|"flex"|null)
+const CATALOGUE = [
+  { region:"balaton", icon:"🏖️", title:"Balaton stopover (western end)", sub:"One-night break on the drive — sights near Keszthely.",
+    items:[
+      ["Festetics Palace (Keszthely)","town","easy","1–2h","Grand Baroque palace ~10 min west, on your way out toward Slovenia. Opens 10:00, closed Mondays (Sunday is fine). Buy at the entrance, or online at festeticskastely.hu to skip a summer queue - get the combined ticket (palace + carriage museum). Highlight: the Helikon Library with tens of thousands of rare books, plus the gilded mirror and dining rooms - look up at the gold-leaf ceilings. Gardens are free, free lockers at entry. ~1.5h for the core (~€13-18pp).","sched","https://mapy.com/fnc/v1/showmap?mapset=outdoor&center=17.23890,46.77260&zoom=16&marker=true","https://upload.wikimedia.org/wikipedia/commons/d/d8/Keszthely_-_Festetics_Castle.jpg"],
+      ["Keszthely lakefront","town","easy","1h","Long lakeside promenade and Hungary's longest wooden pier; lovely at sunset.","sched","https://mapy.com/fnc/v1/showmap?mapset=outdoor&center=17.24700,46.75600&zoom=15&marker=true","https://upload.wikimedia.org/wikipedia/commons/3/32/Festetics-kast%C3%A9ly_Keszthelyen_-_4.jpg"],
+      ["Szigliget Castle","town","easy","1–1.5h","Open-air hilltop ruin ~25 min east (toward Badacsony) with the best 360° view on the lake. No booking - buy at the gate (~2,000 HUF, just over €5). Park free at the bottom, then ~10 min up steep cobbles - proper shoes and water, allow ~1h. Note: any 'book 52 days ahead' you see online is third-party tours, not the castle entry.","sched","https://mapy.com/fnc/v1/showmap?mapset=outdoor&center=17.43500,46.80030&zoom=15&marker=true","https://upload.wikimedia.org/wikipedia/commons/4/47/Szigliget_castle_%281%29.jpg"],
+      ["Badacsony wine hill","hike","easy–mod","2–3h","Basalt-columned vineyard hill with cellar tastings and a panoramic plateau.",null,"https://mapy.com/fnc/v1/showmap?mapset=outdoor&center=17.50100,46.80300&zoom=14&marker=true","https://upload.wikimedia.org/wikipedia/commons/4/45/Badacsony_mountain_from_Balatonm%C3%A1riaf%C3%BCrd%C5%91%2C_Hungary.jpg"],
+      ["Hévíz thermal lake","town","easy","1–2h","Europe's largest swimmable thermal lake — warm year-round, ~12 km away.",null,"https://mapy.com/fnc/v1/showmap?mapset=outdoor&center=17.18890,46.78750&zoom=15&marker=true","https://upload.wikimedia.org/wikipedia/commons/2/2b/H%C3%A9v%C3%ADz.jpg"],
+      ["Vonyarcvashegy Lidó Strand","swim","easy","1–2h","The town beach - grassy, shady, gentle shallow entry, food stalls, cheap entry, right on the lakefront. From the apartment up the slope it is a ~10-20 min walk down (uphill back) - good for a swim plus a promenade stroll. Shallow and warm in late August (~23-25°C).","sched","https://mapy.com/fnc/v1/showmap?mapset=outdoor&center=17.3120,46.7360&zoom=16&marker=true"],
+      ["Öregház Vendégudvar (Vonyarcvashegy)","town","easy","dinner","No fish needed - the Balaton does meat and game too. Top pick: Öregház Vendégudvar (Vonyarcvashegy, 4.9★) - lovely garden, big portions, order the duck leg, with schnitzel and veg options too, likely walkable. Also great: Rétes Grill & Café (casual - goulash, crispy goose leg, duck breast, gyros, burgers) and Piroska Csárda (Gyenesdiás, 5 min - pork medallions, duck, live music). Dishes to look for: gulyás, pörkölt with nokedli, csirkepaprikás, rántott hús, kacsacomb, game, somlói galuska for dessert. Wine: a local Olaszrizling or a Kékfrankos red.","sched","https://mapy.com/fnc/v1/showmap?mapset=outdoor&center=17.3100,46.7380&zoom=16&marker=true"],
+    ]},
+  { region:"alpine", icon:"🏔️", title:"Kranjska Gora & the NW Julian Alps", sub:"Doorstep hikes off Vršič + Bohinj classics as ~50-min drive-days.",
+    items:[
+      ["Valley of the Seven Lakes","hike","hard","full day","The marquee alpine day — glacial lakes, ~1150 m gain. About 7h of walking before breaks, plus the ~50-min drive each way to Savica — a true full day.","sched","https://mapy.com/fnc/v1/route?mapset=outdoor&start=13.79677,46.29274&end=13.77905,46.31887&routeType=foot_hiking","https://upload.wikimedia.org/wikipedia/commons/6/69/Triglavska_jezera_2009_09_1.JPG"],
+      ["Mala Mojstrovka (2332 m)","hike","hard","5–6h / full day","Steep Vršič classic with an airy via-ferrata finish - a local doorstep. Can be made a full-day circular via the Hanzova pot via ferrata (bring a via-ferrata set) - route: <a href='https://www.ferratago.com/hanzova-pot-mala-mojstrovka/' target='_blank' rel='noopener'>ferratago.com</a>.","sched","https://mapy.com/fnc/v1/route?mapset=outdoor&start=13.7444,46.4356&end=13.73111,46.43725&routeType=foot_hiking","https://upload.wikimedia.org/wikipedia/commons/5/5c/Mojstrovka_mala.jpg"],
+      ["Vogel ridge + Mostnica Gorge","hike","mod–hard","drive-day","Bohinj-side (~50 min): the rewarding way is to hike up to the Vogel ridge (~1535 m) and ride the cable car back down (or the reverse if legs are tired). Pair it with the flat, emerald Mostnica gorge near Stara Fužina. Bohinj's lake and the Mostnica are glacial - no swimming.","sched","https://mapy.com/fnc/v1/route?mapset=outdoor&start=13.8347,46.2766&end=13.8403,46.2592&routeType=foot_hiking","https://upload.wikimedia.org/wikipedia/commons/5/58/Aerial_image_of_Lake_Bohinj_%28view_from_the_south%29.jpg"],
+      ["Slemenova špica (1911 m)","hike","easy–mod","~1.5h","Off Vršič — the postcard view to Jalovec. A short ~700 m walk from the pass, ~1.5h there-and-back. Slotted on the move day.","sched","https://mapy.com/fnc/v1/route?mapset=outdoor&start=13.7444,46.4356&end=13.7431,46.4329&routeType=foot_hiking","https://upload.wikimedia.org/wikipedia/commons/c/c0/SlemenovaSpica1.jpg"],
+      ["Ciprnik / Vitranc","hike","mod","4–5h / full loop 7h+","Big Špik-wall views from the ridge. Best done cable-assisted: ride the Vitranc 1 chairlift up to Bedančev dom, then hike the ridge over Vitranc to Ciprnik and back (~4-5h). The full on-foot loop from Kranjska Gora is ~7h20 of walking before breaks - a proper full day.","sched","https://mapy.com/fnc/v1/route?mapset=outdoor&start=13.7621,46.4837&end=13.74278,46.46944&routeType=foot_hiking","https://upload.wikimedia.org/wikipedia/commons/6/69/Julijske_alpe_vrh_spik.jpg"],
+      ["Viševnik (Pokljuka)","hike","mod","3–4h","Easy-access 2050 m summit from Rudno polje; vast panorama. Bohinj-side.",null,"https://mapy.com/fnc/v1/route?mapset=outdoor&start=13.92315,46.34544&end=13.89853,46.35915&routeType=foot_hiking"],
+      ["Tamar valley → Nadiža waterfall","hike","easy–mod","3h","Glacial valley under Jalovec to the Sava's source; from Planica.",null,"https://mapy.com/fnc/v1/route?mapset=outdoor&start=13.7230,46.4772&end=13.71333,46.44611&routeType=foot_hiking"],
+      ["Triglav (2864 m)","hike","very hard","2-day","Slovenia's roof with a hut overnight. The ultimate.","flex","https://mapy.com/fnc/v1/showmap?mapset=outdoor&center=13.83667,46.37833&zoom=14&marker=true"],
+      ["Martuljek Waterfalls","gorge","easy–mod","5–5.5h","Two falls under the Martuljek wall, straight from the Airbnb. About 4h of actual walking - allow ~5.5h with prep and stops.","sched","https://mapy.com/fnc/v1/route?mapset=outdoor&start=13.8240,46.4855&end=13.83864,46.45988&routeType=foot_hiking&waypoints=13.82864,46.47228","https://upload.wikimedia.org/wikipedia/commons/f/fa/Waterfall_Julian_Alps_Slovena_%2810%29.JPG"],
+      ["Zelenci + Lake Jasna","hike","easy","1–2h","Turquoise spring wetland and a calm deer-statue lake; flat, restful.","sched","https://mapy.com/fnc/v1/showmap?mapset=outdoor&center=13.73438,46.49430&zoom=15&marker=true","https://upload.wikimedia.org/wikipedia/commons/6/6e/Zelenci_01.jpg"],
+      ["Peričnik waterfall","gorge","easy","1–1.5h","A 52 m fall you can walk behind on the rock ledge, up the Vrata valley near Mojstrana — ~15 min east of Gozd Martuljek. Short, gentle, high payoff - paired with Zelenci on the easy Thursday morning.","sched","https://mapy.com/fnc/v1/showmap?mapset=outdoor&center=13.8600,46.4350&zoom=15&marker=true"],
+      ["Russian Chapel (Vršič)","town","easy","20 min","Wooden memorial chapel built by WWI Russian POWs, many of whom died in an avalanche building the Vršič road — right on the hairpins of the climb. A two-minute stop on the Sun crossing to Kobarid.","sched","https://mapy.com/fnc/v1/showmap?mapset=outdoor&center=13.7517,46.4503&zoom=16&marker=true"],
+      ["Prisojnik (Prisank) — the Window","hike","hard","6–8h","Big 2547 m Vršič classic with the giant natural rock window (Prisojnikovo okno) — cabled sections, far quieter than the showpiece peaks. A harder doorstep alternative to Ciprnik.",null,"https://mapy.com/fnc/v1/route?mapset=outdoor&start=13.7444,46.4356&end=13.7361,46.4197&routeType=foot_hiking"],
+      ["Vintgar Gorge (Bled side)","gorge","easy","½-day","Famous boardwalk gorge ~50 min away — go 8am. Touristy.",null,"https://mapy.com/fnc/v1/showmap?mapset=outdoor&center=14.08387,46.39098&zoom=15&marker=true"],
+    ]},
+  { region:"soca", icon:"⛰️", title:"Soča Valley (Kobarid + Bovec day-trips)", sub:"Glacial river — no swimming. Day-trip up to Bovec for the high-alpine.",
+    items:[
+      ["Krn (2244 m)","hike","hard","7–9h","The marquee mountain — ~1500 m over the WWI front, sea views.","sched","https://mapy.com/fnc/v1/route?mapset=outdoor&start=13.65970,46.24141&end=13.65833,46.26611&routeType=foot_hiking","https://upload.wikimedia.org/wikipedia/commons/7/7d/Krn_mountain.JPG"],
+      ["Mt. Stol (Kobariški Stol, 1673 m)","hike","hard","6–7h","The big ridge directly above Kobarid — long, wild, panoramic.","flex","https://mapy.com/fnc/v1/route?mapset=outdoor&start=13.43955,46.25464&end=13.453905,46.278364&routeType=foot_hiking"],
+      ["Slemenova špica (1911 m)","hike","easy–mod","~1.5h","From Vršič — arguably the most beautiful easy-ish view in the Alps. A short ~700 m walk from the pass, ~1.5h there-and-back.","sched","https://mapy.com/fnc/v1/route?mapset=outdoor&start=13.7444,46.4356&end=13.7431,46.4329&routeType=foot_hiking","https://upload.wikimedia.org/wikipedia/commons/c/c0/SlemenovaSpica1.jpg"],
+      ["Svinjak (1653 m)","hike","hard","4–6h","The 'Bovec pyramid' — steep, relentless. ⚠ cabled top section.",null,"https://mapy.com/fnc/v1/route?mapset=outdoor&start=13.5517,46.3376&end=13.62444,46.35306&routeType=foot_hiking"],
+      ["Kanin (Bovec cable car)","hike","mod","3–5h","Lift to ~2200 m, then high karst plateau walking near the Italian border.",null,"https://mapy.com/fnc/v1/showmap?mapset=outdoor&center=13.5388,46.3329&zoom=15&marker=true"],
+      ["Mangart Saddle + ridge","hike","easy walk","½-day","Drive Slovenia's highest road (~€10), short ridge walk at 2000 m. Check it's open + a guide: <a href='https://www.soca-valley.com/en/soca-valley/news/2026061614380672/mangart-road-open/' target='_blank' rel='noopener'>road status</a>, <a href='https://www.objevuj-slovinsko.cz/mangart/' target='_blank' rel='noopener'>guide (CZ)</a>.","sched","https://mapy.com/fnc/v1/search?query=Mangartsko%20sedlo&mapset=outdoor","https://upload.wikimedia.org/wikipedia/commons/1/10/Mangart_16.jpg"],
+      ["Matajur (1642 m)","hike","mod","3–4h","Panoramic border peak — Adriatic to Triglav on a clear day.",null,"https://mapy.com/fnc/v1/route?mapset=outdoor&start=13.5844,46.1983&end=13.529493,46.212169&routeType=foot_hiking"],
+      ["Krn Lake + Batognica","hike","hard","add-on","Extend the Krn day to the highest alpine lake and the mine-blast summit.","flex","https://mapy.com/fnc/v1/showmap?mapset=outdoor&center=13.6606,46.2722&zoom=15&marker=true"],
+      ["Kolovrat ridge (WWI)","hike/bike","mod","full day","Your bike day (Fri, taken off). Rent an MTB/e-enduro and book the van uplift in Kobarid (<a href='https://positive-sport.com/' target='_blank' rel='noopener'>Positive Sport</a>; or DK Sport, Bovec) - no cable car, a shuttle drives you up to the ridge. Ride the panoramic top singletrack past the open-air WWI museum, then descend ~1000 m back to Kobarid and drop the bike at the shop. Guided full-day from ~€60 pp; keep it aerobic to save your legs for Krn.","sched","https://mapy.com/fnc/v1/showmap?mapset=outdoor&center=13.6605,46.1859&zoom=14&marker=true"],
+      ["Boka waterfall + viewpoints","hike","mod","1.5–3h","Slovenia's most powerful fall (thinner by Sept) with a steep upper view.",null,"https://mapy.com/fnc/v1/search?query=Slap%20Boka&mapset=outdoor"],
+      ["Tolmin Gorges","gorge","easy–mod","1–2h","Confluence gorge with the Dante's cave and Bear's Head rock. Swapped out for the zipline — keep as an easy option.",null,"https://mapy.com/fnc/v1/showmap?mapset=outdoor&center=13.74015,46.19803&zoom=15&marker=true","https://upload.wikimedia.org/wikipedia/commons/7/73/Tolminka-HudicevMost2.jpg"],
+      ["Kozjak waterfall","gorge","easy","~2.5h","The 7.2 km Kobarid Historical Trail loop (~270 m up): over Napoleon's Bridge to Kozjak's cathedral-like cavern, then on to the Italian charnel house and back through town. Mostly unpaved path.","sched","https://www.komoot.com/tour/67977181","https://upload.wikimedia.org/wikipedia/commons/5/57/Slap_Kozjak.jpg"],
+      ["Soča Trail / source / Great Gorge","gorge","easy","2–3h","Two easy stops up the valley. Source of Soča (Izvir Soče): free parking at Koča pri izviru Soče on the Vršič road, then a steep, partly-cabled ~20-min climb to the turquoise karst spring. Great Soča Gorge (Velika korita): park by the bridge near Soča village (~25 min from Kobarid); a 750 m emerald gorge you walk above on a near-flat path - link Mala→Velika korita for ~2.5 km / ~1h. Glacial water - look, don't swim.","sched","https://mapy.com/fnc/v1/search?query=Velika%20korita%20So%C4%8De&mapset=outdoor","https://upload.wikimedia.org/wikipedia/commons/8/83/Soca_4.jpg"],
+      ["Slap Virje","gorge","easy","1h","Photogenic curtain fall near Bovec — a quick, quiet stop.",null,"https://mapy.com/fnc/v1/showmap?mapset=outdoor&center=13.5142,46.3349&zoom=15&marker=true"],
+      ["Bovec Zipline (Učja)","bike","mod","½-day","Billed as Europe's longest zipline park — 10 lines, 4.5 km of cable up to 60 km/h over the Učja canyon, ~2.5h. ~30 min up-valley from Kobarid. Runs to end of Sept; min 2 people, so book ahead.","sched","https://mapy.com/fnc/v1/showmap?mapset=outdoor&center=13.5060,46.3530&zoom=14&marker=true"],
+      ["Kobarid WWI Museum","town","easy","1–2h","One of Europe's finest war museums on the Isonzo/Soča front, paired with the Kobarid Historical Trail loop that links Kozjak falls, Napoleon's Bridge and the Italian charnel house. Open year-round.","sched","https://mapy.com/fnc/v1/showmap?mapset=outdoor&center=13.5786,46.2459&zoom=16&marker=true"],
+      ["Soča rafting / canyoning (Bovec)","swim","easy–mod","½-day","Get on the river you're sleeping beside — whitewater rafting, kayaking or canyoning out of Bovec. Wetsuits provided, so the glacial cold is a non-issue. Regular season runs to mid/late September.",null,"https://mapy.com/fnc/v1/showmap?mapset=outdoor&center=13.5522,46.3378&zoom=14&marker=true"],
+      ["Sušec canyoning (beginner)","swim","easy","½-day","The Soča's beginner canyon, ~7 km from Bovec - a 30-min hike in, then ~2h of jumps (up to 6 m), natural slides and one 12 m rappel, with a walk-around or rope option at every obstacle (age 9+, wetsuits provided). Book: <a href='https://www.alpicenter.cz/aktivity/canyoning-slovinsko/#susec' target='_blank' rel='noopener'>alpicenter</a>. Other beginner picks: Globoški potok (similar but quieter, one of Slovenia's longest descents); step up to Fratarica or Kozjak when you want more adrenaline.",null,"https://mapy.com/fnc/v1/showmap?mapset=outdoor&center=13.4790,46.3170&zoom=14&marker=true"],
+    ]},
+  { region:"coast", icon:"🏞️", title:"Karst & Notranjska (Postojna)", sub:"Show caves, a cliff castle, an intermittent lake and big forest peaks — plus one half-day on the coast.",
+    items:[
+      ["Križna jama — 4h epic","cave","mod","½-day","The full 13-lake boat odyssey, no electric light — the wild-cave marquee. Reserve far ahead; a Fri alternative.","flex","https://mapy.com/fnc/v1/showmap?mapset=outdoor&center=14.4674,45.7454&zoom=15&marker=true","https://upload.wikimedia.org/wikipedia/commons/1/15/Burger_KriznaJama_02.jpg"],
+      ["Mt. Snežnik (1796 m)","hike","hard","5–6h hike / full day","Highest non-alpine peak and a proper full day, not a quick one. Drive ~50 min to the Sviščaki trailhead, then ~5-6h round trip climbing through Dinaric beech-fir forest (genuine brown-bear country) to a bald summit with a hut and a huge panorama - the Kvarner gulf and Adriatic one way, the Julian Alps the other. Combine with Snežnik Castle / the Lož valley on the drive back.","sched","https://mapy.com/fnc/v1/route?mapset=outdoor&start=14.401174,45.574142&end=14.447613,45.588478&routeType=foot_hiking"],
+      ["Cerkniško jezero + Rakov Škocjan","gorge","easy","2–3h","Europe's largest intermittent lake plus the Rakov Škocjan karst gorge with natural stone bridges — quiet, birdy, otherworldly.","sched","https://mapy.com/fnc/v1/showmap?mapset=outdoor&center=14.3700,45.7300&zoom=13&marker=true","https://upload.wikimedia.org/wikipedia/commons/d/d8/Cerknica_Lake%2C_Slovenia.jpg"],
+      ["Snežnik Castle","town","easy","1–2h","Fairy-tale moated castle on a forest lake in the Lož valley — Slovenia's best-preserved aristocratic interior.","sched","https://mapy.com/fnc/v1/showmap?mapset=outdoor&center=14.4692,45.6825&zoom=15&marker=true","https://upload.wikimedia.org/wikipedia/commons/e/e3/Grad_Sneznik01.jpg"],
+      ["Slavnik (1028 m)","hike","mod–hard","3–5h","Karst panorama peak with a hut famous for its tea.",null,"https://mapy.com/fnc/v1/route?mapset=outdoor&start=13.9620,45.5460&end=13.97541,45.53385&routeType=foot_hiking","https://upload.wikimedia.org/wikipedia/commons/4/43/Slavnik_Sendeanlage_2_%28HS%29.JPG"],
+      ["Beka waterfalls / Glinščica","hike","mod","3–4h","Hidden Karst canyon with falls and an old aqueduct — anti-tourist-trap.",null,"https://mapy.com/fnc/v1/route?mapset=outdoor&start=13.8940,45.5993&end=13.876,45.605&routeType=foot_hiking","https://upload.wikimedia.org/wikipedia/commons/4/4d/Val_Rosandra_near_Trieste1.jpg"],
+      ["Nanos plateau","hike","mod–hard","3–4h","Windswept Karst plateau with a hut. Pinned to Wed 16 (no return-day window now).","sched","https://mapy.com/fnc/v1/route?mapset=outdoor&start=13.9610,45.8460&end=14.05310,45.77206&routeType=foot_hiking","https://upload.wikimedia.org/wikipedia/commons/6/60/Nanos.JPG"],
+      ["Strunjan cliff loop + Moon Bay","swim","easy–mod","½-day","The coast's only big cliffs, ending at the warm Moon Bay swim cove.",null,"https://mapy.com/fnc/v1/showmap?mapset=outdoor&center=13.6075,45.5347&zoom=15&marker=true","https://upload.wikimedia.org/wikipedia/commons/c/c5/Strunjan_settlement.jpg"],
+      ["Škocjan Caves","cave","easy–mod","2–3h","UNESCO underground canyon — done on the move day in.","sched","https://mapy.com/fnc/v1/showmap?mapset=outdoor&center=13.9897,45.6636&zoom=15&marker=true","https://upload.wikimedia.org/wikipedia/commons/7/70/SkocjanskeJame_2013jpg.jpg"],
+      ["Križna jama — short tour","cave","easy","1.5h","The 1h boat-and-lakes taster, if the 4h epic is full.",null,"https://mapy.com/fnc/v1/showmap?mapset=outdoor&center=14.4674,45.7454&zoom=15&marker=true","https://upload.wikimedia.org/wikipedia/commons/1/15/Burger_KriznaJama_02.jpg"],
+      ["Osp / Mišja peč crags","climb","varies","½-day","World-class sport-climbing walls in a Karst amphitheatre.",null,"https://mapy.com/fnc/v1/showmap?mapset=outdoor&center=13.8565,45.5726&zoom=15&marker=true"],
+      ["Parenzana into Istria","bike","mod","5–6h","Former railway turned cycle trail past the Sečovlje salt pans into the Istrian hills (Grožnjan, Motovun), easy and flat-ish on gravel/e-bike. Heads into Croatia though - too far for a quick add from Postojna, so an optional bonus only, not scheduled.",null,"https://mapy.com/fnc/v1/route?mapset=outdoor&start=13.6601,45.5374&end=13.6086,45.4815&routeType=bike_mountain&waypoints=13.5908,45.5135"],
+      ["Trek through Three Caves + Predjama Castle","cave","easy","½-day","The boutique guided trek through three linked caves — Postojna, Pivka and Black — cave train plus an up-to-3h easy underground trail past olms, well beyond the standard show-cave loop. Runs Sat/Sun 13:30 in September (~€92.50pp, book ahead), so pinned to Sun 20 with the evening drive home after. Pair with Predjama Castle, the cliff-cave-mouth fortress 10 min away, on the Mon arrival day.","sched","https://mapy.com/fnc/v1/showmap?mapset=outdoor&center=14.1272,45.8156&zoom=15&marker=true","https://upload.wikimedia.org/wikipedia/commons/5/57/Predjama_castle%2C_Slovenia.jpg"],
+      ["Sečovlje salt pans","town","easy","2h","Flat birdlife walk through working medieval salt fields.",null,"https://mapy.com/fnc/v1/showmap?mapset=outdoor&center=13.5987,45.4864&zoom=15&marker=true","https://upload.wikimedia.org/wikipedia/commons/3/37/Se%C4%8Doveljske_soline_%28Slovenija%29_-_solinarski_vozi%C4%8Dek.jpg"],
+      ["Hrastovlje church","town","easy","1h","Tiny fortified church with the famous Dance of Death fresco.",null,"https://mapy.com/fnc/v1/showmap?mapset=outdoor&center=13.9012,45.5104&zoom=16&marker=true"],
+      ["Goriška Brda wine + Štanjel","town","easy","½-day","Slovenia's top wine country (Tuscan-like hills) plus the stone village of Štanjel — right on the Kobarid→Karst drive. A relaxed tasting or lunch detour on the move day; Vipava is the alternative.",null,"https://mapy.com/fnc/v1/showmap?mapset=outdoor&center=13.5230,45.9962&zoom=13&marker=true"],
+      ["Lipica Stud Farm","town","easy","1.5–2h","Home of the white Lipizzaner horses since 1580 — stable and carriage tours, ~10 min from Škocjan. An easy add on the move day, next to the cave.",null,"https://mapy.com/fnc/v1/showmap?mapset=outdoor&center=13.8710,45.6540&zoom=15&marker=true"],
+      ["Koper / Izola old town","town","easy","½-day","The lived-in, less day-tripped coast — Koper's Venetian core or Izola's working fishing harbour. A quieter alternative or complement to Piran for the coast half-day.",null,"https://mapy.com/fnc/v1/showmap?mapset=outdoor&center=13.7302,45.5481&zoom=15&marker=true"],
+      ["Piran old town + walls","town","easy","½-day","Venetian gem - climb the €3 town walls for the rooftop view, the St George bell tower, Tartini Square and the cafe-lined harbour for a seafood lunch; best once the day-trippers thin out. Make the ~50-min drive count: pair it with a sea swim at the Fiesa coves or Strunjan's Moon Bay (Adriatic ~22-23°C, warm into the evening), and you can break the drive at Lipica or Hrastovlje.","sched","https://mapy.com/fnc/v1/showmap?mapset=outdoor&center=13.5685,45.5273&zoom=16&marker=true","https://upload.wikimedia.org/wikipedia/commons/c/c1/Piran%2C_Slovenia%2C_Viewpoint.jpg"],
+    ]},
+  { region:"city", icon:"🏙️", title:"Cities — optional day or stopover", sub:"Neither is essential, but easy to bolt on if you want an urban day.",
+    items:[
+      ["Ljubljana (city day)","town","easy","½-day","Slovenia's compact, walkable capital - the castle funicular, riverside cafés and Plečnik's bridges. ~40 min from Postojna, so an easy half-day or evening out.",null,"","https://upload.wikimedia.org/wikipedia/commons/b/bd/Ljubljana_old_town_with_castle_2025.jpg"],
+      ["Maribor (city day)","town","easy","½-day","Slovenia's second city, on the Drava - the Lent waterfront and the world's oldest vine. ~1.5h from Postojna, so best as a stop on the drive home rather than a day trip.",null,"","https://upload.wikimedia.org/wikipedia/commons/b/b4/Maribor_Lent_panorama.jpg"],
+    ]},
+];
+
+/* ---------- RENDER: calendar ---------- */
+const H0=6, H1=22, HPX=36;
+const toMin = s => { const [h,m]=s.split(":").map(Number); return h*60+m; };
+const DOW=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+
+function renderWeeks(){
+  const root=document.getElementById("weeks");
+  WEEKS.forEach(w=>{
+    const week=document.createElement("div"); week.className="week "+w.cls;
+    week.innerHTML=`<div class="week-head"><span class="num">${w.num}</span><span class="title">${w.title}</span><span class="range">${w.range}</span></div>`;
+    const body=document.createElement("div"); body.className="week-body";
+    const cal=document.createElement("div"); cal.className="cal";
+    const ncols=w.dates.length, dows=w.dow||DOW;
+    cal.style.gridTemplateColumns=`46px repeat(${ncols}, minmax(118px,1fr))`;
+    cal.style.minWidth=(46+ncols*120)+"px";
+    cal.appendChild(el(`<div class="corner"></div>`));
+    w.dates.forEach((d,i)=>{ cal.appendChild(el(`<div class="dayhead ${i===w.anchorDay?'is-anchor':''}"><div class="dow">${dows[i]}</div><div class="dt">${i===w.anchorDay?'★ ':''}${d}</div></div>`)); });
+    // time gutter
+    const gut=document.createElement("div"); gut.className="timegutter";
+    for(let h=H0;h<H1;h++){ gut.appendChild(el(`<div class="hr">${h}:00</div>`)); }
+    cal.appendChild(gut);
+    // day columns
+    w.days.forEach(events=>{
+      const col=document.createElement("div"); col.className="col";
+      for(let h=H0;h<H1;h++){ col.appendChild(el(`<div class="hrline"></div>`)); }
+      events.forEach(ev=>{
+        const [s,e,title,type,sub,anchor,link]=ev;
+        const top=(toMin(s)-H0*60)/60*HPX, height=(toMin(e)-toMin(s))/60*HPX;
+        const node=el(`<div class="ev type-${type} ${anchor?'anchor':''}" style="top:${top}px;height:${Math.max(height-2,16)}px;">
+          <span class="t">${anchor?'<span class="star">★ </span>':''}${title}</span>
+          <span class="s">${s}–${e}${sub?' · '+sub:''}</span></div>`);
+        node.addEventListener("click",()=>openActivityModal(title,type,s,e,sub||"",link));
+        col.appendChild(node);
+      });
+      cal.appendChild(col);
+    });
+    body.appendChild(cal); week.appendChild(body); root.appendChild(week);
+  });
+}
+function el(html){ const t=document.createElement("template"); t.innerHTML=html.trim(); return t.content.firstChild; }
+
+// Walks (hikes, gorges, waterfalls) open on mapy.com's outdoor map — a there-and-back route
+// where we have the trail, else a named pin. Everything else (drive-to spots) opens on Google Maps.
+function isTrailType(type){ const t=type.split("/")[0]; return t==="hike"||t==="gorge"; }
+// Reduce a calendar/catalogue title to a searchable place name: take the primary feature
+// (before " + ", " / ", " → " or a note dash) and drop elevation/parentheticals + a "Mt." prefix.
+function placeQuery(name){
+  return name.split(/\s(?:[+/→]|[—–])\s/)[0].replace(/\s*\([^)]*\)\s*$/,"").replace(/^Mt\.?\s+/i,"").trim() || name;
+}
+function gmapsLink(name){ return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(placeQuery(name))}`; }
+// A few hikes whose English/combined title doesn't resolve on mapy — use the local point name.
+const MAPY_QUERY = {
+  "Valley of the Seven Lakes":"Triglavska jezera",
+  "Vogel ridge + Mostnica Gorge":"Vogel",
+  "Mt. Stol (Kobariški Stol, 1673 m)":"Kobariški Stol",
+  "Tamar valley → Nadiža waterfall":"Dolina Tamar",
+  "Krn Lake + Batognica":"Krnsko jezero",
+  "Nanos plateau":"Nanos",
+  "Badacsony wine hill":"Badacsony",
+  "Mangart Saddle + ridge":"Mangartsko sedlo",
+  "Boka waterfall + viewpoints":"Slap Boka",
+  "Kolovrat ridge (WWI)":"Kolovrat",
+  "Tolmin Gorges":"Tolminska korita",
+  "Soča Trail / source / Great Gorge":"Velika korita Soče",
+  "Vintgar Gorge (Bled side)":"Vintgar",
+};
+function mapyLink(name){ return `https://mapy.com/fnc/v1/search?query=${encodeURIComponent(MAPY_QUERY[name]||placeQuery(name))}&mapset=outdoor`; }
+function isRouteLink(url){ return url.indexOf("/route?")>-1; }
+// One-way trails (e.g. hike up, ride the cable car down) — keep the A→B route as-is, don't loop it.
+const ONEWAY = new Set(["Vogel ridge + Mostnica Gorge"]);
+// Cable-car-assisted: you ride a lift up to the route's start, then loop on foot from there.
+const LIFT = new Set(["Ciprnik / Vitranc"]);
+// Hikes with a stored A→B trail become a there-and-back: start → (the peak) → back to start,
+// so the route returns to the parking it left from. Start pin = the trailhead you drive to.
+// Hikes without a trail (drive-ups, short walks) fall back to a named pin.
+function hikeLink(link, name){
+  if(link && isRouteLink(link)){
+    if(ONEWAY.has(name)) return link;   // one-way ascent (descend by cable car / another way)
+    const start = (link.match(/[?&]start=([^&]+)/)||[])[1];
+    const end   = (link.match(/[?&]end=([^&]+)/)||[])[1];
+    const wp    = (link.match(/[?&]waypoints=([^&]+)/)||[])[1];
+    if(start && end){
+      const mids = [wp, end].filter(Boolean).join(";");          // existing waypoints, then the peak
+      let out = link.replace(/([?&])end=[^&]+/, `$1end=${start}`); // return to the start
+      out = /[?&]waypoints=/.test(out)
+        ? out.replace(/([?&])waypoints=[^&]+/, `$1waypoints=${mids}`)
+        : out + `&waypoints=${mids}`;
+      return out;
+    }
+  }
+  return mapyLink(name);
+}
+
+/* ---------- RENDER: catalogue ---------- */
+function renderCatalogue(){
+  const root=document.getElementById("catalogue");
+  CATALOGUE.forEach(reg=>{
+    const shown=reg.items.filter(it=>it[5]!=="sched");
+    if(!shown.length) return;
+    const sec=el(`<div class="cat-region"><h3>${reg.icon} ${reg.title}</h3><p class="cr-sub">${reg.sub}</p></div>`);
+    const list=document.createElement("div"); list.className="cat-list";
+    shown.forEach((it,i)=>{
+      const [name,type,diff,dur,why,tag,link]=it;
+      const ptype = type.split("/")[0];
+      const tagPill = tag==="sched" ? `<span class="pill sched">In plan</span>` : tag==="flex" ? `<span class="pill flex">flex</span>` : "";
+      const trail = isTrailType(type);
+      const href = trail ? hikeLink(link, name) : gmapsLink(name);
+      const linkEl = `<a class="maplink" href="${href}" target="_blank" rel="noopener">${trail?(isRouteLink(href)?(ONEWAY.has(name)?"🗺️ one way":"🗺️ round trip"):"🗺️ map"):"📍 map"} ↗</a>`;
+      list.appendChild(el(`<div class="cat-item"><div class="rank">${i+1}</div><div class="ci-main">
+        <div class="ci-name">${name}</div><div class="ci-why">${why}</div>
+        <div class="ci-meta"><span class="pill t-${ptype}">${type}</span><span class="pill diff">${diff}</span><span class="pill dur">${dur}</span>${tagPill}${linkEl}</div>
+      </div></div>`));
+    });
+    sec.appendChild(list); root.appendChild(sec);
+  });
+}
+
+/* ---------- RENDER: map ---------- */
+function renderMap(){
+  const map=L.map("map",{scrollWheelZoom:false,zoomSnap:0.5,zoomDelta:0.5});
+  // zoom only with Ctrl/Cmd + scroll (and trackpad pinch, which fires ctrl+wheel) so page scroll isn't hijacked
+  map.getContainer().addEventListener("wheel",function(e){
+    if(e.ctrlKey||e.metaKey){ e.preventDefault(); map.setZoom(map.getZoom()+(e.deltaY<0?0.5:-0.5)); }
+  },{passive:false});
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:18,attribution:"© OpenStreetMap"}).addTo(map);
+  const pts=[];
+  L.polyline(ROUTE,{color:"#444",weight:2,dashArray:"6,7",opacity:.7}).addTo(map);
+  const drawPOI=(name,lat,lng,region,picked)=>{
+    const w=picked?whenPlanned(name):null;
+    const pop=(picked?"★ ":"")+name+(picked?" <i>(in the plan)</i>":"")+(w?`<br><span style="color:var(--anchor);font-weight:600">🗓 ${w.when} · ${w.time}</span>`:"");
+    L.circleMarker([lat,lng],{
+      radius:picked?7:5, color:"#fff", weight:picked?2:1.2,
+      fillColor:picked?PICKED_COLOR:REGION_COLOR[region], fillOpacity:picked?1:.5
+    }).addTo(map).bindPopup(pop);
+    pts.push([lat,lng]);
+  };
+  // draw alternatives first, then picked spots on top (draw order = z-order, no bringToFront needed)
+  POI.forEach(([name,lat,lng,region])=>{ if(!SCHEDULED.has(name)) drawPOI(name,lat,lng,region,false); });
+  POI.forEach(([name,lat,lng,region])=>{ if(SCHEDULED.has(name)) drawPOI(name,lat,lng,region,true); });
+  BASES.forEach(b=>{
+    const alt=b.kind==="alt", home=b.kind==="home";
+    const emoji=home?"🏁":"🏠", size=home?24:(alt?18:22), op=alt?.55:1;
+    const icon=L.divIcon({className:"",html:`<div style="font-size:${size}px;opacity:${op};filter:drop-shadow(0 1px 1px rgba(0,0,0,.4));">${emoji}</div>`,iconSize:[26,26],iconAnchor:[13,13]});
+    const sub=home?"🏁 start &amp; finish":alt?"<i>alternative base</i>":"🏠 sleep base";
+    L.marker([b.lat,b.lng],{icon}).addTo(map).bindPopup(`<b>${b.name}</b><br>${sub}`);
+    if(!alt) pts.push([b.lat,b.lng]);
+  });
+  map.fitBounds(L.latLngBounds(pts).pad(0.12));
+}
+
+/* ---------- checklist persistence ---------- */
+function initChecklist(){
+  document.querySelectorAll("#checklist input[type=checkbox]").forEach(box=>{
+    const key="si-trip-"+box.id;
+    box.checked=localStorage.getItem(key)==="1";
+    box.addEventListener("change",()=>localStorage.setItem(key,box.checked?"1":"0"));
+  });
+}
+
+/* ---------- activity detail modal ---------- */
+const CAT_INDEX=[];
+CATALOGUE.forEach(reg=>reg.items.forEach(it=>{
+  CAT_INDEX.push({name:it[0],type:it[1],diff:it[2],dur:it[3],why:it[4],link:it[6],img:it[7],tokens:toks(it[0])});
+}));
+function norm(s){ return s.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/\([^)]*\)/g," ").replace(/[^a-z0-9 ]+/g," ").replace(/\s+/g," ").trim(); }
+function toks(s){ return norm(s).split(" ").filter(Boolean); }
+function matchActivity(title){
+  const T=new Set(toks(title)); let best=null;
+  CAT_INDEX.forEach(c=>{ if(c.tokens.length && c.tokens.every(t=>T.has(t))){ if(!best||c.tokens.length>best.tokens.length) best=c; } });
+  return best;
+}
+function openActivityModal(title,type,s,e,sub,link){
+  const m=matchActivity(title), body=document.getElementById("modalBody"), pt=t=>t.split("/")[0];
+  if(m){
+    const trail=isTrailType(m.type), href=trail?hikeLink(m.link,m.name):gmapsLink(m.name);
+    const isRoute=trail&&isRouteLink(href), oneway=isRoute&&ONEWAY.has(m.name), roundTrip=isRoute&&!oneway;
+    body.innerHTML=(m.img?`<img class="m-photo" src="${m.img}" alt="${m.name}" loading="lazy">`:"")+`<h3>${m.name}</h3><div class="m-time">🕒 ${s}–${e}</div>`+
+      `<div class="m-meta"><span class="pill t-${pt(m.type)}">${m.type}</span><span class="pill diff">${m.diff}</span></div>`+
+      `<div class="m-why">${m.why}</div>`+
+      (roundTrip?`<div class="m-why" style="color:var(--muted)">${LIFT.has(m.name)?"🚡 Ride the cable car up to the start pin, then it's a there-and-back to the summit.":"🅿️ There-and-back from your base: drive to the route's start/end pin (the trailhead parking), then walk the loop."}</div>`:"")+
+      `<a class="m-route" href="${href}" target="_blank" rel="noopener">${trail?(isRoute?(oneway?"🗺️ Open route (one way) on mapy.com":"🗺️ Open round-trip route on mapy.com"):"🗺️ Open on mapy.com"):"📍 Open in Google Maps"} ↗</a>`;
+  } else {
+    body.innerHTML=`<h3>${title.replace(/^★ /,"")}</h3><div class="m-time">🕒 ${s}–${e}</div>`+
+      (sub?`<div class="m-why">${sub}</div>`:`<div class="m-why" style="color:var(--muted)">Logistics.</div>`)+
+      (link?`<a class="m-route" href="${link}" target="_blank" rel="noopener">🚗 Directions on Google Maps ↗</a>`:"");
+  }
+  document.getElementById("modal").classList.add("open");
+}
+function closeModal(){ document.getElementById("modal").classList.remove("open"); }
+document.getElementById("modalClose").addEventListener("click",closeModal);
+document.getElementById("modal").addEventListener("click",ev=>{ if(ev.target.id==="modal") closeModal(); });
+document.addEventListener("keydown",ev=>{ if(ev.key==="Escape") closeModal(); });
+
+/* ---------- map "when is this planned?" lookup ---------- */
+const SCHED_STOP=new Set("the of and to a up over into at on back from drive walk tour loop bike swim dip dinner check settle arrive optional first sunset evening morning day ridge gorge gorges waterfall waterfalls plateau saddle pass valley lake lakes sea source trail cave caves castle palace beach coast cliff cliffs bay salt pans nature reserve town walls old hill wine fish white warm epic short cable car museum summit mt m h km napoleon bridge".split(" "));
+function distTokens(s){ return toks(s).filter(t=>t.length>=3 && !SCHED_STOP.has(t)); }
+const SCHEDULE=[];
+WEEKS.forEach(w=>{ const dows=w.dow||DOW; w.days.forEach((day,i)=>day.forEach(ev=>{ const [s,e,title,type]=ev; if(type==="drive"||type==="work"||type==="call") return; SCHEDULE.push({when:`${w.num} · ${dows[i]} ${w.dates[i]}`,time:`${s}–${e}`,d:distTokens(title)}); })); });
+function whenPlanned(name){ const P=new Set(distTokens(name)); let best=null,bs=0; SCHEDULE.forEach(x=>{ const sc=x.d.filter(t=>P.has(t)).length; if(sc>bs){bs=sc;best=x;} }); return best; }
+
+renderWeeks(); renderCatalogue(); renderMap(); initChecklist();
+</script>
+</body>
+</html>
